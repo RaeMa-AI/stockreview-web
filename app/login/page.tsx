@@ -26,7 +26,7 @@ export default function LoginPage() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session) {
+      if (event === 'SIGNED_IN' && session) {
         router.push("/")
       }
     })
@@ -55,8 +55,15 @@ export default function LoginPage() {
           setError(signInError.message)
         }
       } else {
-        setMessage("登录成功！")
-        router.push("/")
+        // 检查用户会话状态
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session) {
+          setMessage("登录成功！")
+          // 使用 replace 而不是 push，避免用户按后退键回到登录页
+          router.replace("/")
+        } else {
+          setError("登录失败，请重试。")
+        }
       }
     } catch (err: any) {
       setError(err.message || "登录失败。请重试。")
