@@ -1,29 +1,34 @@
+
+import { createServerClient as createSSRServerClient } from '@supabase/ssr'
 import { createClient } from "@supabase/supabase-js"
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
 import { cookies } from "next/headers"
 
 // Server-side Supabase client (for authenticated user actions, uses anon key)
-export const createServerClient = () => {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+export const createServerClient = async () => {
+  const cookieStore = await cookies()
 
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error(
-      "Supabase environment variables NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY must be set.",
-    )
-  }
-
-  // Add logging for debugging in development
-  if (process.env.NODE_ENV !== "production") {
-    console.log("Supabase URL (server):", supabaseUrl)
-    console.log("Supabase Anon Key (server, first 5 chars):", supabaseKey.substring(0, 5) + "...")
-  }
-
-  return createServerComponentClient({
-    cookies,
-    supabaseUrl,
-    supabaseKey,
-  })
+  return createSSRServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll()
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
+          } catch {
+            // The `setAll` method was called from a Server Component.
+            // This can be ignored if you have middleware refreshing
+            // user sessions.
+          }
+        },
+      },
+    }
+  )
 }
 
 // New: Server-side Supabase client with Service Role Key (for admin-like actions)
