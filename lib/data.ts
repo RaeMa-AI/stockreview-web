@@ -126,7 +126,7 @@ export async function deleteNote(noteId: string, userId: string): Promise<boolea
 
 export async function getUserStocks(userId: string): Promise<UserStock[]> {
   try {
-    const supabase = createServerClient()
+    const supabase = await createServerClient()
     const { data, error } = await supabase
       .from("stocks")
       .select("*")
