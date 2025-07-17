@@ -11,7 +11,7 @@ interface StockDisplayData extends UserStock {
 }
 
 export default async function StockDetailPage({ params }: { params: { symbol: string } }) {
-  const supabase = createServerClient()
+  const supabase = await createServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
