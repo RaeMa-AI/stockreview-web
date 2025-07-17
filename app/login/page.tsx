@@ -41,48 +41,110 @@ export default function LoginPage() {
     setLoading(true)
     setShowResend(false)
 
-    console.log("开始登录过程，邮箱:", email)
+    // 验证输入
+    if (!email || !password) {
+      setError("请输入邮箱和密码")
+      setLoading(false)
+      return
+    }
+
+    console.log("=== 开始登录流程 ===")
+    console.log("邮箱:", email)
+    console.log("Supabase URL:", process.env.NEXT_PUBLIC_SUPABASE_URL)
+    console.log("当前 URL:", window.location.href)
 
     try {
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
+      // 首先检查 Supabase 连接
+      const { data: connectionTest, error: connectionError } = await supabase.auth.getSession()
+      console.log("Supabase 连接测试:", { connectionTest, connectionError })
+
+      if (connectionError) {
+        console.error("Supabase 连接失败:", connectionError)
+        setError("连接服务器失败，请检查网络连接")
+        return
+      }
+
+      // 尝试登录
+      console.log("发送登录请求...")
+      const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
         password,
       })
 
-      console.log("登录响应:", { data, signInError })
+      console.log("登录响应:", { 
+        authData: authData ? {
+          user: authData.user ? { id: authData.user.id, email: authData.user.email } : null,
+          session: authData.session ? { access_token: !!authData.session.access_token } : null
+        } : null, 
+        signInError 
+      })
 
       if (signInError) {
-        console.error("登录错误:", signInError)
+        console.error("=== 登录错误详情 ===")
+        console.error("错误代码:", signInError.code)
+        console.error("错误消息:", signInError.message)
+        console.error("错误状态:", signInError.status)
+        
+        // 处理不同类型的错误
         if (signInError.message.includes("Email not confirmed") || 
-            signInError.message.includes("email_not_confirmed")) {
+            signInError.message.includes("email_not_confirmed") ||
+            signInError.code === "email_not_confirmed") {
           setError("您的邮箱尚未确认。请检查您的收件箱以获取确认链接。")
           setShowResend(true)
-        } else if (signInError.message.includes("Invalid login credentials")) {
+        } else if (signInError.message.includes("Invalid login credentials") ||
+                   signInError.code === "invalid_credentials") {
           setError("邮箱或密码错误，请检查后重试。")
+        } else if (signInError.message.includes("too many requests") ||
+                   signInError.code === "too_many_requests") {
+          setError("请求过于频繁，请稍后再试。")
         } else {
           setError(`登录失败: ${signInError.message}`)
         }
-      } else {
-        console.log("登录成功，检查会话状态...")
-        // 检查用户会话状态
-        const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
-        console.log("会话数据:", { sessionData, sessionError })
-        
-        if (sessionData?.session) {
-          setMessage("登录成功！正在跳转...")
-          console.log("会话确认成功，开始跳转")
-          // 短暂延迟确保状态更新
-          setTimeout(() => {
-            router.replace("/")
-          }, 500)
-        } else {
-          setError("登录过程中出现异常，请重试。")
-          console.error("会话验证失败:", sessionError)
-        }
+        return
       }
+
+      // 登录成功，验证会话
+      console.log("=== 验证登录会话 ===")
+      await new Promise(resolve => setTimeout(resolve, 100)) // 短暂等待
+
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+      console.log("会话验证结果:", { 
+        sessionData: sessionData ? {
+          session: sessionData.session ? { 
+            user: sessionData.session.user ? { id: sessionData.session.user.id, email: sessionData.session.user.email } : null,
+            expires_at: sessionData.session.expires_at
+          } : null
+        } : null, 
+        sessionError 
+      })
+
+      if (sessionError) {
+        console.error("会话验证错误:", sessionError)
+        setError("登录成功但会话验证失败，请重试")
+        return
+      }
+
+      if (sessionData?.session?.user) {
+        console.log("=== 登录成功，准备跳转 ===")
+        setMessage("登录成功！正在跳转...")
+        
+        // 确保状态更新后再跳转
+        setTimeout(() => {
+          console.log("执行页面跳转")
+          router.replace("/")
+        }, 1000)
+      } else {
+        console.error("=== 登录失败：无有效会话 ===")
+        setError("登录过程中出现异常，请重试")
+      }
+
     } catch (err: any) {
-      console.error("登录异常:", err)
-      setError(`登录过程中发生错误: ${err.message || "未知错误"}`)
+      console.error("=== 登录过程异常 ===", err)
+      if (err.name === "TypeError" && err.message.includes("fetch")) {
+        setError("网络连接失败，请检查网络或稍后重试")
+      } else {
+        setError(`登录过程中发生错误: ${err.message || "未知错误"}`)
+      }
     } finally {
       setLoading(false)
     }

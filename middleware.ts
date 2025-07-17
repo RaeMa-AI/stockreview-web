@@ -3,6 +3,8 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
+  console.log("Middleware 处理路径:", request.nextUrl.pathname)
+  
   let supabaseResponse = NextResponse.next({
     request,
   })
@@ -16,20 +18,25 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({
-            request,
-          })
-          cookiesToSet.forEach(({ name, value, options }) =>
+          cookiesToSet.forEach(({ name, value, options }) => {
             supabaseResponse.cookies.set(name, value, options)
-          )
+          })
         },
       },
     }
   )
 
-  // 刷新会话
-  await supabase.auth.getSession()
+  // 只刷新会话，不做任何重定向逻辑
+  try {
+    const { data: { session }, error } = await supabase.auth.getSession()
+    console.log("Middleware 会话状态:", { 
+      hasSession: !!session, 
+      error: error?.message,
+      path: request.nextUrl.pathname 
+    })
+  } catch (error) {
+    console.error("Middleware 错误:", error)
+  }
 
   return supabaseResponse
 }
