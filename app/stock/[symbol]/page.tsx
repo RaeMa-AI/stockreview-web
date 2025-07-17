@@ -10,7 +10,7 @@ interface StockDisplayData extends UserStock {
   historicalPrices?: HistoricalPrice[]
 }
 
-export default async function StockDetailPage({ params }: { params: { symbol: string } }) {
+export default async function StockDetailPage({ params }: { params: Promise<{ symbol: string }> }) {
   const supabase = await createServerClient()
   const {
     data: { user },
@@ -20,7 +20,8 @@ export default async function StockDetailPage({ params }: { params: { symbol: st
     redirect("/login")
   }
 
-  const symbol = params.symbol.toUpperCase()
+  const resolvedParams = await params
+  const symbol = resolvedParams.symbol.toUpperCase()
   const userId = user.id
 
   // 1. 获取用户股票信息

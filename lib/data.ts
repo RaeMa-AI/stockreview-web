@@ -34,7 +34,7 @@ export interface UserStock {
 // --- Notes Functions ---
 
 export async function getNotesBySymbol(symbol: string, userId: string): Promise<Note[]> {
-  const supabase = createServerClient()
+  const supabase = await createServerClient()
   const { data, error } = await supabase
     .from("notes")
     .select("*")
@@ -50,7 +50,7 @@ export async function getNotesBySymbol(symbol: string, userId: string): Promise<
 }
 
 export async function getNoteById(noteId: string, userId: string): Promise<Note | null> {
-  const supabase = createServerClient()
+  const supabase = await createServerClient()
   const { data, error } = await supabase.from("notes").select("*").eq("id", noteId).eq("user_id", userId).single()
 
   if (error) {
@@ -63,7 +63,7 @@ export async function getNoteById(noteId: string, userId: string): Promise<Note 
 export async function saveNote(
   note: Omit<Note, "id" | "created_at" | "updated_at"> & { id?: string; created_at?: string; updatedAt?: string },
 ): Promise<Note | null> {
-  const supabase = createServerClient()
+  const supabase = await createServerClient()
   const now = new Date().toISOString()
   let result: any
 
@@ -112,7 +112,7 @@ export async function saveNote(
 }
 
 export async function deleteNote(noteId: string, userId: string): Promise<boolean> {
-  const supabase = createServerClient()
+  const supabase = await createServerClient()
   const { data, error } = await supabase.from("notes").delete().eq("id", noteId).eq("user_id", userId)
 
   if (error) {
@@ -158,7 +158,7 @@ export async function getUserStocks(userId: string): Promise<UserStock[]> {
 }
 
 export async function addStockToUser(userId: string, symbol: string, name: string): Promise<UserStock | null> {
-  const supabase = createServerClient()
+  const supabase = await createServerClient()
   const now = new Date().toISOString()
   const { data, error } = await supabase
     .from("stocks")
@@ -187,7 +187,7 @@ export async function addStockToUser(userId: string, symbol: string, name: strin
 }
 
 export async function getStockForUser(symbol: string, userId: string): Promise<UserStock | null> {
-  const supabase = createServerClient()
+  const supabase = await createServerClient()
   const { data, error } = await supabase.from("stocks").select("*").eq("user_id", userId).eq("symbol", symbol).single()
 
   if (error) {
@@ -205,7 +205,7 @@ export async function updateStockPrices(
   changePercent: number,
   fetchedDate: string, // YYYY-MM-DD
 ): Promise<UserStock | null> {
-  const supabase = createServerClient()
+  const supabase = await createServerClient()
   const { data, error } = await supabase
     .from("stocks")
     .update({
@@ -230,7 +230,7 @@ export async function updateStockPrices(
 
 // New: Function to delete a stock from the user's portfolio
 export async function deleteStockFromUser(stockId: string, userId: string): Promise<boolean> {
-  const supabase = createServerClient()
+  const supabase = await createServerClient()
   // Note: This will NOT delete associated notes due to Supabase RLS and table design.
   // Notes are linked to user_id and stock_symbol, not directly cascaded from stocks.id.
   const { error } = await supabase.from("stocks").delete().eq("id", stockId).eq("user_id", userId)
