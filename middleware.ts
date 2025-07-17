@@ -3,7 +3,12 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
-  console.log("Middleware 处理路径:", request.nextUrl.pathname)
+  // 跳过对静态资源和 API 路由的处理
+  if (request.nextUrl.pathname.startsWith('/api/') || 
+      request.nextUrl.pathname.startsWith('/_next/') ||
+      request.nextUrl.pathname.startsWith('/auth/callback')) {
+    return NextResponse.next()
+  }
   
   let supabaseResponse = NextResponse.next({
     request,
@@ -26,16 +31,11 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // 只刷新会话，不做任何重定向逻辑
+  // 仅刷新会话，不做任何其他操作
   try {
-    const { data: { session }, error } = await supabase.auth.getSession()
-    console.log("Middleware 会话状态:", { 
-      hasSession: !!session, 
-      error: error?.message,
-      path: request.nextUrl.pathname 
-    })
+    await supabase.auth.getSession()
   } catch (error) {
-    console.error("Middleware 错误:", error)
+    console.error("Middleware 会话刷新失败:", error)
   }
 
   return supabaseResponse

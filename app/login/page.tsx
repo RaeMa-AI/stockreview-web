@@ -22,12 +22,31 @@ export default function LoginPage() {
   const router = useRouter()
   const supabase = createClient()
 
+  // 在组件加载时验证配置
+  useEffect(() => {
+    const verifyConfig = async () => {
+      try {
+        const { data, error } = await supabase.auth.getSession()
+        console.log("初始 Supabase 配置验证:", { 
+          hasData: !!data, 
+          hasSession: !!data?.session,
+          error: error?.message 
+        })
+      } catch (err) {
+        console.error("Supabase 配置验证失败:", err)
+      }
+    }
+    verifyConfig()
+  }, [])
+
   useEffect(() => {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' && session) {
-        router.push("/")
+      console.log("认证状态变化:", event, session?.user?.email)
+      if (event === 'SIGNED_IN' && session?.user) {
+        console.log("检测到登录状态变化，准备跳转")
+        router.replace("/")
       }
     })
 
@@ -103,38 +122,21 @@ export default function LoginPage() {
         return
       }
 
-      // 登录成功，验证会话
-      console.log("=== 验证登录会话 ===")
-      await new Promise(resolve => setTimeout(resolve, 100)) // 短暂等待
-
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
-      console.log("会话验证结果:", { 
-        sessionData: sessionData ? {
-          session: sessionData.session ? { 
-            user: sessionData.session.user ? { id: sessionData.session.user.id, email: sessionData.session.user.email } : null,
-            expires_at: sessionData.session.expires_at
-          } : null
-        } : null, 
-        sessionError 
-      })
-
-      if (sessionError) {
-        console.error("会话验证错误:", sessionError)
-        setError("登录成功但会话验证失败，请重试")
-        return
-      }
-
-      if (sessionData?.session?.user) {
-        console.log("=== 登录成功，准备跳转 ===")
+      // 登录成功，直接跳转（依赖 useEffect 中的 onAuthStateChange 处理）
+      if (authData?.user) {
+        console.log("=== 登录成功，用户数据:", { 
+          id: authData.user.id, 
+          email: authData.user.email 
+        })
         setMessage("登录成功！正在跳转...")
         
-        // 确保状态更新后再跳转
+        // 直接跳转，不需要额外的会话验证
         setTimeout(() => {
           console.log("执行页面跳转")
           router.replace("/")
-        }, 1000)
+        }, 500)
       } else {
-        console.error("=== 登录失败：无有效会话 ===")
+        console.error("=== 登录失败：无用户数据 ===")
         setError("登录过程中出现异常，请重试")
       }
 
