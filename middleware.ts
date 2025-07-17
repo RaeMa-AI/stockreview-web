@@ -28,16 +28,8 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  // 如果用户已登录但访问登录/注册页面，重定向到首页
-  if (user && (request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/register')) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/'
-    return NextResponse.redirect(url)
-  }
+  // 刷新会话
+  await supabase.auth.getSession()
 
   return supabaseResponse
 }

@@ -41,32 +41,48 @@ export default function LoginPage() {
     setLoading(true)
     setShowResend(false)
 
+    console.log("开始登录过程，邮箱:", email)
+
     try {
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
+      console.log("登录响应:", { data, signInError })
+
       if (signInError) {
-        if (signInError.message.includes("Email not confirmed")) {
+        console.error("登录错误:", signInError)
+        if (signInError.message.includes("Email not confirmed") || 
+            signInError.message.includes("email_not_confirmed")) {
           setError("您的邮箱尚未确认。请检查您的收件箱以获取确认链接。")
           setShowResend(true)
+        } else if (signInError.message.includes("Invalid login credentials")) {
+          setError("邮箱或密码错误，请检查后重试。")
         } else {
-          setError(signInError.message)
+          setError(`登录失败: ${signInError.message}`)
         }
       } else {
+        console.log("登录成功，检查会话状态...")
         // 检查用户会话状态
-        const { data: { session } } = await supabase.auth.getSession()
-        if (session) {
-          setMessage("登录成功！")
-          // 使用 replace 而不是 push，避免用户按后退键回到登录页
-          router.replace("/")
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+        console.log("会话数据:", { sessionData, sessionError })
+        
+        if (sessionData?.session) {
+          setMessage("登录成功！正在跳转...")
+          console.log("会话确认成功，开始跳转")
+          // 短暂延迟确保状态更新
+          setTimeout(() => {
+            router.replace("/")
+          }, 500)
         } else {
-          setError("登录失败，请重试。")
+          setError("登录过程中出现异常，请重试。")
+          console.error("会话验证失败:", sessionError)
         }
       }
     } catch (err: any) {
-      setError(err.message || "登录失败。请重试。")
+      console.error("登录异常:", err)
+      setError(`登录过程中发生错误: ${err.message || "未知错误"}`)
     } finally {
       setLoading(false)
     }

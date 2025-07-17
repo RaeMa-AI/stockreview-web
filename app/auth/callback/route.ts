@@ -7,6 +7,8 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get('code')
   const next = searchParams.get('next') ?? '/'
 
+  console.log("认证回调处理:", { code: !!code, next })
+
   if (code) {
     let supabaseResponse = NextResponse.redirect(`${origin}${next}`)
 
@@ -27,12 +29,18 @@ export async function GET(request: NextRequest) {
       }
     )
 
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+    console.log("代码交换结果:", { data: !!data, error })
+    
     if (!error) {
+      console.log("认证成功，重定向到:", `${origin}${next}`)
       return supabaseResponse
+    } else {
+      console.error("代码交换失败:", error)
     }
   }
 
   // return the user to an error page with instructions
-  return NextResponse.redirect(`${origin}/auth/auth-code-error`)
+  console.log("认证失败，重定向到错误页面")
+  return NextResponse.redirect(`${origin}/login?error=auth_failed`)
 }

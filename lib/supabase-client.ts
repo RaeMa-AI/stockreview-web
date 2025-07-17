@@ -11,13 +11,26 @@ export function createClient() {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
+    console.log("Supabase 配置检查:", { 
+      url: supabaseUrl ? "已设置" : "未设置", 
+      key: supabaseAnonKey ? "已设置" : "未设置" 
+    })
+
     if (!supabaseUrl || !supabaseAnonKey) {
       throw new Error(
         "Supabase environment variables NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY must be set.",
       )
     }
 
-    supabase = createBrowserClient(supabaseUrl, supabaseAnonKey)
+    supabase = createBrowserClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true
+      }
+    })
+    
+    console.log("Supabase 客户端已创建")
   }
   return supabase
 }
