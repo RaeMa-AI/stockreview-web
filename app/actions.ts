@@ -66,29 +66,26 @@ export async function getFmpQuote(symbol: string): Promise<FmpQuote | null> {
   const url = `https://financialmodelingprep.com/api/v3/quote/${symbol}?apikey=${FMP_API_KEY}`
 
   try {
-    console.log(`[FMP] Fetching quote for ${symbol} from: ${url}`)
-    const response = await fetch(url, { next: { revalidate: 300 } }) // Changed to 5 minutes (300 seconds)
+    const response = await fetch(url, { next: { revalidate: 60 } })
 
     if (!response.ok) {
       const errorText = await response.text()
       console.error(
-        `[FMP] Quote API Error for ${symbol}: Status ${response.status} ${response.statusText}, Body: ${errorText}`,
+        `FMP Quote API Error for ${symbol}: Status ${response.status} ${response.statusText}, Body: ${errorText}`,
       )
       return null
     }
 
     const data: FmpQuote[] = await response.json()
-    console.log(`[FMP] Raw quote data for ${symbol}:`, data)
 
     if (data && data.length > 0 && data[0].price !== undefined && data[0].price !== null) {
-      console.log(`[FMP] Successfully fetched quote for ${symbol}: Price ${data[0].price}`)
       return data[0]
     } else {
-      console.warn(`[FMP] No valid quote data for ${symbol}. Response:`, data)
+      console.warn(`FMP: No valid quote data for ${symbol}. Response:`, data)
       return null
     }
   } catch (error) {
-    console.error(`[FMP] Failed to fetch FMP quote for ${symbol}:`, error)
+    console.error(`Failed to fetch FMP quote for ${symbol}:`, error)
     return null
   }
 }
@@ -139,7 +136,7 @@ export async function getFmpHistoricalData(
   const url = `https://financialmodelingprep.com/api/v3/historical-price-full/${symbol}?from=${from}&to=${to}&apikey=${FMP_API_KEY}`
 
   try {
-    const response = await fetch(url, { next: { revalidate: 300 } }) // Changed to 5 minutes (300 seconds)
+    const response = await fetch(url, { next: { revalidate: 3600 } })
 
     if (!response.ok) {
       const errorText = await response.text()
@@ -195,33 +192,28 @@ export async function getFmpHistoricalData(
 export async function fetchAndCacheStockPrices(userId: string, userStock: UserStock): Promise<UserStock> {
   const today = new Date().toISOString().split("T")[0]
 
-  console.log(`[Cache] Attempting to fetch and cache prices for ${userStock.symbol}.`)
+  if (userStock.last_fetched_price_date === today && userStock.current_price !== null) {
+    return userStock
+  }
 
   let quote: FmpQuote | null = null
 
   if (FMP_API_KEY) {
-    // Always attempt to get the latest quote, relying on getFmpQuote's internal revalidation (60s)
     quote = await getFmpQuote(userStock.symbol)
   }
 
   if (quote) {
-    console.log(`[Cache] Updating cache for ${userStock.symbol} with new quote data.`)
     const updatedStock = await updateStockPrices(
       userStock.id,
       userId,
       quote.price,
       quote.change,
       quote.changesPercentage,
-      today, // Use today's date for last_fetched_price_date
+      today,
     )
     if (updatedStock) {
-      console.log(`[Cache] Successfully updated cache for ${userStock.symbol}.`)
       return updatedStock
-    } else {
-      console.warn(`[Cache] Failed to update Supabase cache for ${userStock.symbol}. Returning original stock.`)
     }
-  } else {
-    console.warn(`[Cache] No quote data available for ${userStock.symbol}. Returning original stock.`)
   }
   return userStock
 }

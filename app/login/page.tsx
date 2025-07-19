@@ -23,59 +23,26 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
 
-      if (error) {
-        if (error.message.includes("Invalid Refresh Token: Refresh Token Not Found")) {
-          toast({
-            title: "会话错误",
-            description: "您的会话已过期或损坏。请尝试清除浏览器缓存和Cookie，然后重试。",
-            variant: "destructive",
-            duration: 8000, // Give user time to read
-          })
-          // Attempt to sign out to clear local storage, then refresh
-          await supabase.auth.signOut()
-          router.refresh()
-        } else {
-          toast({
-            title: "登录失败",
-            description: error.message,
-            variant: "destructive",
-          })
-        }
-      } else {
-        toast({
-          title: "登录成功",
-          description: "您已成功登录。",
-        })
-        router.push("/")
-        router.refresh() // Refresh to update session
-      }
-    } catch (e: any) {
-      // Catch any other unexpected errors during the sign-in process
-      if (e.message.includes("Invalid Refresh Token: Refresh Token Not Found")) {
-        toast({
-          title: "会话错误",
-          description: "您的会话已过期或损坏。请尝试清除浏览器缓存和Cookie，然后重试。",
-          variant: "destructive",
-          duration: 8000,
-        })
-        await supabase.auth.signOut()
-        router.refresh()
-      } else {
-        toast({
-          title: "登录失败",
-          description: e.message || "发生未知错误。",
-          variant: "destructive",
-        })
-      }
-    } finally {
-      setLoading(false)
+    if (error) {
+      toast({
+        title: "登录失败",
+        description: error.message,
+        variant: "destructive",
+      })
+    } else {
+      toast({
+        title: "登录成功",
+        description: "您已成功登录。",
+      })
+      router.push("/")
+      router.refresh() // Refresh to update session
     }
+    setLoading(false)
   }
 
   return (

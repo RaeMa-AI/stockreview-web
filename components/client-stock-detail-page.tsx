@@ -222,6 +222,7 @@ export default function ClientStockDetailPage({
           title: "删除成功",
           description: `${stockData.name || stockData.symbol} 已从您的投资组合中删除。笔记已保留。`,
         })
+        setIsStockInPortfolio(false)
         router.push("/")
       } else {
         toast({
@@ -351,7 +352,7 @@ export default function ClientStockDetailPage({
         </Card>
 
         {/* Fixed Historical Price Chart Card */}
-        <Card className="mb-0 flex-shrink-0 h-[40vh] overflow-hidden">
+        <Card className="mb-4 flex-shrink-0 h-[40vh] overflow-hidden">
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2">
@@ -431,19 +432,14 @@ export default function ClientStockDetailPage({
           </CardContent>
         </Card>
 
-        {/* NEW: Fixed Stock Notes Header Card */}
-        <Card className="mb-0 flex-shrink-0 border-none shadow-none">
-          {/* Adjusted padding-left to 20px (pl-5) and padding-bottom to 8px (pb-2) */}
-          <CardHeader className="pl-5 pr-6 pb-2">
-            <CardTitle className="text-2xl">股票笔记</CardTitle>
-          </CardHeader>
-        </Card>
-
-        {/* Existing: Scrollable Notes Content, now within its own Card */}
-        <Card className="flex-grow min-h-0 border-none shadow-none">
-          <CardContent className="p-0 h-full">
-            {/* Adjusted padding-left to 20px (pl-5) */}
-            <div ref={notesListRef} className="flex-grow overflow-y-auto h-full pl-5 pr-2 py-6">
+        {/* Scrollable Notes Section */}
+        <div
+          ref={notesListRef} // Ref is correctly placed here
+          className="flex-grow overflow-y-auto bg-card text-card-foreground rounded-lg shadow-sm min-h-0"
+        >
+          <div className="p-6">
+            <h2 className="text-xl font-semibold mb-4">股票笔记</h2>
+            <div className="pr-2">
               {notes.length === 0 ? (
                 <p className="text-muted-foreground text-center py-10">暂无笔记，点击右上角添加。</p>
               ) : (
@@ -456,8 +452,8 @@ export default function ClientStockDetailPage({
                 </div>
               )}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </main>
     </div>
   )
